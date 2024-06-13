@@ -313,7 +313,7 @@ sugo vagrant ssh controlplane
 ### Requirement 1:
 - Install ArgoCD on the Kubernetes Cluster, and expose ArgoCD through NodePort.
   ## Output:
-  ### Manifest file used to deploy ArgoCD to K8S Cluster: [here](https://github.com/jasmine150720/output/tree/main/images/argo-cd/setup)
+  ### Manifest file used to deploy ArgoCD to K8S Cluster: [here](https://github.com/jasmine150720/output/blob/main/images/argo-cd/setup/values.yaml)
   **Expose ArgoCD through NodePort: 30080**
     <img src= images/argo-cd/setup/set_NodePort.png>
 
@@ -526,6 +526,71 @@ update_helm_chart:
 <img src= images/CI-CD/web-tagname.png>
 
 # Monitoring
+## Requirements:
+- Expose metrics of web service and API service via one HTTP path
+- Deploy Prometheus on Kubernetes Cluster using Prometheus Operator, exposing it as NodePort
+- Utilize Prometheus Operator's Service Monitor to monitor Web Deployment and API Deploymen
+
+## Output:
+### Api get metrics:
+**Install Required Packages**:
+First, Install prometheus-fastapi-instrumentator package, which simplifies the integration of Prometheus metrics into FastAPI.
+```sh
+pip install prometheus-fastapi-instrumentator
+```
+**Import Required Modules**:
+```sh
+from prometheus_fastapi_instrumentator import Instrumentator
+```
+**Configure Prometheus Instrumentator**:
+```sh
+instrumentator = Instrumentator()
+instrumentator.instrument(app)
+```
+**Define Metrics Endpoint**:
+```sh
+@app.get("/metrics")
+async def get_metrics():
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from starlette.responses import Response
+
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+```
+### Web get metrics:
+**Change Nginx configuration**:
+```sh
+server {
+    listen 8888;
+
+    location / {
+        proxy_pass http://react:3000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /metrics {
+        stub_status on;
+        access_log off;
+        allow 127.17.29.120;  
+        deny all;
+    }
+}
+```
+### Deploy Prometheus on Kubernetes Cluster
+**Installing the operator**:
+Run the following commands to install the Custom Resource Definitions and deploy the operator in the default namespace:
+```sh
+LATEST=$(curl -s https://api.github.com/repos/prometheus-operator/prometheus-operator/releases/latest | jq -cr .tag_name)
+curl -sL https://github.com/prometheus-operator/prometheus-operator/releases/download/${LATEST}/bundle.yaml | kubectl create -f -
+```
+
+It can take a few minutes for the operator to be up and running. Check for completion with the following command:
+```sh
+kubectl wait --for=condition=Ready pods -l  app.kubernetes.io/name=prometheus-operator -n default
+```
+### Monitoring Web Deployment and API Deployment
+<img src= images/monitoring.png>
+
 # Logging & Security: 
 Unfortunately, I don't have enough time to complete those parts, so I just simply leave my prayer here.
 <img src= images/praygecover.jpg>
