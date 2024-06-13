@@ -517,14 +517,14 @@ update_helm_chart:
 <img src= images/CI-CD/api-build-image.png>
 <img src= images/CI-CD/api-update-helmchart.png>
 <img src= images/CI-CD/api-images.png>
+<img src= images/CI-CD/api-tagname.png>
 
 #### Web Logs:
 <img src= images/CI-CD/web_build_image.png>
 <img src= images/CI-CD/web_update_helm_chart.png>
 <img src= images/CI-CD/web-images.png>
+<img src= images/CI-CD/web-tagname.png>
 
-#### ArgoCD deployment app: 
-  
 # Monitoring
 # Logging & Security: 
 Unfortunately, I don't have enough time to complete those parts, so I just simply leave my prayer here.
