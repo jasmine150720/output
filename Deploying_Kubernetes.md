@@ -148,7 +148,7 @@ kubectl apply -f https://raw.githubusercontent.com/techiescamp/kubeadm-scripts/m
 
 ```
 
-**node.sh**: Setup for Node servers
+**node.sh**: Setup for Node server
 ```sh
 set -euxo pipefail
 
