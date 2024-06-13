@@ -527,6 +527,6 @@ update_helm_chart:
   
 # Monitoring
 # Logging & Security: 
-Unfortunately, I don't have enough time to complete this part, so I will simply leave my prayer here.
+Unfortunately, I don't have enough time to complete those parts, so I just simply leave my prayer here.
 <img src= images/praygecover.jpg>
 
