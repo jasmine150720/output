@@ -1,8 +1,6 @@
 # Implementation of Kubernetes
 
 ## Requirements:
-
-### Requirement:
 - Successfully deploy Kubernetes using **kubeadm** on MacOS : 1 master node VM + 1 worker node VM
 
 ## Output:
@@ -325,7 +323,7 @@ sugo vagrant ssh controlplane
   **Get all objects**:
   <img src= images/argo-cd/setup/allObjects.png>
 
-  **ArgoCD homesreen on NodePort: 30080**:
+  **ArgoCD homesreen on NodePort 30080**:
   <img src= images/argo-cd/setup/homescreen-ArgoCD.png>
   
 ### Requirement 2:
@@ -404,12 +402,131 @@ spec:
   **Web Deployment**:
   <img src= images/argo-cd/deploying-app/argocd-web.png>
   ### Screenshot of browser  when accessing Web URL, API URL:
-  **Api Deployment on NodePort:30101**:
+  **Api Deployment on NodePort 30101**:
   <img src= images/argo-cd/deploying-app/api-deployment.png>
-  **Web Deployment on NodePort:30100**:
+  **Web Deployment on NodePort 30100**:
   <img src= images/argo-cd/deploying-app/web-deployment.png>
   
-  
-  
+# Continuous Delivery
+## Requirements: 
+Create 2 CI/CD pipelines for the web and api repos. When a new tag is created in one of these repos, the corresponding deployment pipeline should perform the following tasks:
+- Build the Docker image with the image tag set to the tag name created on GitLab, and push the built Docker image to Docker Hub.
+- Update the image version in the values.yaml file in the config repo and push the changes to the config repo.
+- Configure ArgoCD to automatically redeploy the web Deployment and api Deployment when changes are detected in the config repo.
+## Output:
+### CD set up files: 
+**Note:** Remember to set up the SSH key to access the server remotely.
 
+`.gitlab-ci.yml`: For api repo
+```sh
+stages:
+  - build
+  - update_helm_chart
+
+variables:
+  APP_NAME: "api"
+  IMAGE_TAG: "registry.gitlab.com/jasmine150720/vdt2024-api/$APP_NAME:$CI_COMMIT_SHORT_SHA"
+
+build_image:
+  image: docker
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$IMAGE_TAG" .
+    - docker push "$IMAGE_TAG"
+
+update_helm_chart:
+  stage: update_helm_chart
+  image: ubuntu:22.04
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client git -y )'
+    - mkdir -p /root/.ssh
+    - echo "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+    - ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    # run ssh-agent
+    - eval $(ssh-agent -s)
+    # add ssh key stored in SSH_PRIVATE_KEY variable to the agent store
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    # Git
+    - git config --global user.email "gitlab-ci@gmail.com"
+    - git config --global user.name "gitlab-ci"
+    - git clone git@gitlab.com:jasmine150720/api-config-repo.git
+    - cd api-config-repo
+    - ls -latr
+  script:
+    # Update Image TAG
+    - sed -i "s/api:.*/api:${CI_COMMIT_SHORT_SHA}/g" values.yaml
+    - git add values.yaml
+    - git commit -am "Update Image"
+    - git push
+```
+`.gitlab-ci.yml`: For web repo
+```sh
+stages:
+  - build
+  - update_helm_chart
+
+variables:
+  APP_NAME: "web"
+  IMAGE_TAG: "registry.gitlab.com/jasmine150720/vdt2024-web/$APP_NAME:$CI_COMMIT_SHORT_SHA"
+
+build_image:
+  image: docker
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$IMAGE_TAG" .
+    - docker push "$IMAGE_TAG"
+
+update_helm_chart:
+  stage: update_helm_chart
+  image: ubuntu:22.04
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client git -y )'
+    - mkdir -p /root/.ssh
+    - echo "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+    - chmod 600 /root/.ssh/id_rsa
+    - ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    # run ssh-agent
+    - eval $(ssh-agent -s)
+    # add ssh key stored in SSH_PRIVATE_KEY variable to the agent store
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    # Git
+    - git config --global user.email "gitlab-ci@gmail.com"
+    - git config --global user.name "gitlab-ci"
+    - git clone git@gitlab.com:jasmine150720/web-config-repo.git
+    - cd web-config-repo
+    - ls -latr
+  script:
+    # Update Image TAG
+    - sed -i "s/web:.*/web:${CI_COMMIT_SHORT_SHA}/g" values.yaml
+    - git add values.yaml
+    - git commit -am "Update Image"
+    - git push
+```
+### Logs of CD piplines when creating new tags on web repo and api repo:
+#### Api Logs:
+<img src= images/CI-CD/api.png>
+<img src= images/CI-CD/api-build-image.png>
+<img src= images/CI-CD/api-update-helmchart.png>
+<img src= images/CI-CD/api-images.png>
+
+#### Web Logs:
+<img src= images/CI-CD/web_build_image.png>
+<img src= images/CI-CD/web_update_helm_chart.png>
+<img src= images/CI-CD/web-images.png>
+
+#### ArgoCD deployment app: 
+  
+# Monitoring
+# Logging & Security: 
+Unfortunately, I don't have enough time to complete this part, so I will simply leave my prayer here.
+<img src= images/praygecover.jpg>
 
